@@ -1,0 +1,15 @@
+# Core dependencies (required)
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+seaborn>=0.12
+
+# Optional: enables k-means inducing-point initialization in SparseGPRegressor
+scikit-learn>=1.3
+
+# Optional: enables the PyTorch autograd-based optimizer backend
+torch>=2.0
+
+# Optional: enables the interactive Streamlit app (run via `streamlit run app.py`)
+streamlit>=1.28

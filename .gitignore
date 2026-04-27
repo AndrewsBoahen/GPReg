@@ -1,0 +1,42 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Saved models (don't commit binary blobs by default)
+*.pkl
+*.pickle
+
+# Streamlit
+.streamlit/secrets.toml
