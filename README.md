@@ -1,6 +1,6 @@
 # GPReg
 
-A from-scratch Gaussian Process Regression package in Python.
+A Gaussian Process Regression package in Python. This package is my final project for an intro to Python class (STT 890) I took this semester.
 
 📖 **[Full documentation](DOCUMENTATION.md)** | 📓 **[Demo notebook](examples/demo.ipynb)**
 
