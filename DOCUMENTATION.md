@@ -51,14 +51,14 @@ To install everything: `pip install -e .[all]`.
 
 ## Conceptual overview
 
-A Gaussian Process (GP) is a distribution over functions. Instead of fitting a single curve to your data, a GP gives you a probability distribution over all possible curves consistent with your data — which means every prediction comes with a calibrated uncertainty estimate.
+A Gaussian Process (GP) is a distribution over functions. Instead of fitting a single curve to your data, a GP gives you a probability distribution over all possible curves consistent with your data which means every prediction comes with an uncertainty estimate.
 
 A GP is fully specified by two things:
 
-- A **mean function** (we use zero, after subtracting the mean of y)
+- A **mean function** (we use zero by default)
 - A **kernel** (covariance function) that encodes assumptions about how outputs at nearby inputs should be correlated
 
-Fitting a GP doesn't change its functional form — it conditions the distribution on observed data. The "training" step in this package is actually hyperparameter optimization: finding kernel parameters (length-scales, signal variance, noise variance) that maximize the marginal likelihood of the observed data.
+Fitting a GP doesn't change its functional form. The posterior distribution is also a GP conditioned on distribution on observed data. The "training" step in this package is actually hyperparameter optimization: finding kernel parameters (lengthscales, signal variance, noise variance) that maximize the marginal likelihood of the observed data.
 
 For a deeper introduction, the canonical reference is Rasmussen & Williams, *Gaussian Processes for Machine Learning* (2006), available free at gaussianprocess.org.
 
@@ -291,7 +291,7 @@ Live in `gpreg.preprocessing`.
 
 ### StandardScaler
 
-Standardize features to zero mean and unit variance. **Always scale your inputs before fitting a GP** — kernel length-scales become meaningless when features have wildly different ranges.
+Standardize features to zero mean and unit variance. **Always scale your inputs before fitting a GP**; kernel lengthscales become meaningless when features have wildly different ranges.
 
 ```python
 from gpreg import StandardScaler
@@ -322,7 +322,7 @@ Behavior:
 
 - If `categorical_columns=None`, columns with non-numeric dtypes are auto-detected.
 - During `transform`, unseen categories encode as all-zero dummies (i.e., treated as the reference level), so the encoder doesn't crash on test data with new values.
-- The original column order is not preserved — categoricals are moved to the end after encoding.
+- The original column order is not preserved. Categoricals are moved to the end after encoding.
 
 ### PCA
 
@@ -384,11 +384,11 @@ Live in `gpreg.diagnostics`. Three core scalar metrics plus a calibration utilit
 
 ### rmse(y_true, y_pred)
 
-Standard root mean squared error. Lower is better. Doesn't assess uncertainty — use NLPD for that.
+Standard root mean squared error. Lower is better. Doesn't assess uncertainty, use NLPD for that.
 
 ### nlpd(y_true, y_mean, y_std)
 
-Negative log predictive density. Evaluates the full predictive distribution against the truth. Penalizes both inaccurate means *and* poorly calibrated uncertainty: a confidently-wrong prediction is punished more than an uncertain wrong one. Lower is better. Reported per data point (averaged), so values are comparable across datasets.
+Negative log predictive density. Evaluates the full predictive distribution against the truth. Penalizes both inaccurate means *and* poorly calibrated uncertainty: a confidently wrong prediction is punished more than an uncertain wrong one. Lower is better. Reported per data point (averaged), so values are comparable across datasets.
 
 ### loo_cv(gp_model)
 
