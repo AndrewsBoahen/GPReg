@@ -1,12 +1,9 @@
 """Diagnostic metrics for GP regression.
 
-Implements the three core diagnostics:
+Implements three core diagnostics:
 - RMSE: point prediction accuracy
 - NLPD: probabilistic accuracy (uses predictive distribution)
 - LOO-CV: leave-one-out cross-validation (closed-form for GPs)
-
-Plus calibration plots for assessing whether the GP's uncertainty estimates
-are well-calibrated.
 """
 
 import numpy as np
@@ -134,47 +131,3 @@ def loo_cv(gp_model):
         "loo_rmse": rmse(y_train_uncentered, loo_means),
         "loo_nlpd": nlpd(y_train_uncentered, loo_means, loo_std),
     }
-
-
-def calibration_curve(y_true, y_mean, y_std, n_bins=10):
-    """Compute observed vs expected coverage for calibration assessment.
-    
-    For a well-calibrated GP, when the model predicts a confidence interval
-    at level p, the true value should fall in that interval p fraction
-    of the time. This function returns the data needed to plot a
-    calibration diagram.
-    
-    Parameters
-    ----------
-    y_true : array-like of shape (n,)
-        True values.
-    y_mean : array-like of shape (n,)
-        Predicted means.
-    y_std : array-like of shape (n,)
-        Predicted standard deviations.
-    n_bins : int, default=10
-        Number of confidence levels to evaluate. Levels are equally
-        spaced between (0, 1).
-    
-    Returns
-    -------
-    expected : ndarray of shape (n_bins,)
-        Expected coverage levels (e.g., [0.1, 0.2, ..., 0.9]).
-    observed : ndarray of shape (n_bins,)
-        Fraction of true values within the predicted interval at each level.
-    """
-    y_true = np.asarray(y_true).ravel()
-    y_mean = np.asarray(y_mean).ravel()
-    y_std = np.asarray(y_std).ravel()
-    
-    expected = np.linspace(0.05, 0.95, n_bins)
-    observed = np.zeros(n_bins)
-    
-    for i, p in enumerate(expected):
-        # Two-sided interval at confidence level p
-        z = norm.ppf(0.5 + p / 2)
-        lower = y_mean - z * y_std
-        upper = y_mean + z * y_std
-        observed[i] = np.mean((y_true >= lower) & (y_true <= upper))
-    
-    return expected, observed

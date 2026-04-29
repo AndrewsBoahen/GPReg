@@ -62,8 +62,19 @@ class MultiOutputGP:
         self._fitted = False
     
     def _to_array_y(self, Y):
-        """Convert Y to a 2D array, recording output column names if any."""
+        """Convert Y to a 2D array, recording output column names if any.
+        
+        Y must be continuous (numeric). DataFrames with non-numeric
+        columns are rejected with an informative error.
+        """
         if isinstance(Y, pd.DataFrame):
+            from pandas.api.types import is_numeric_dtype
+            non_numeric = [c for c in Y.columns if not is_numeric_dtype(Y[c])]
+            if non_numeric:
+                raise ValueError(
+                    f"GPReg only accepts continuous (numeric) outputs. "
+                    f"Non-numeric columns: {non_numeric}."
+                )
             self.output_names_ = list(Y.columns)
             return Y.values.astype(float)
         elif isinstance(Y, pd.Series):

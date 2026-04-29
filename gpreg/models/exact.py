@@ -71,12 +71,21 @@ class GaussianProcessRegressor:
     def _to_array(self, X, y=None):
         """Convert pandas DataFrames/Series to numpy arrays.
         
-        Stores the original column names so we can warn about dimension
-        mismatches with informative names later.
+        Inputs must be continuous (numeric). Non-numeric DataFrame
+        columns are rejected with an informative error rather than
+        silently coerced.
         """
         if isinstance(X, pd.DataFrame):
+            from pandas.api.types import is_numeric_dtype
+            non_numeric = [c for c in X.columns if not is_numeric_dtype(X[c])]
+            if non_numeric:
+                raise ValueError(
+                    f"GPReg only accepts continuous (numeric) inputs. "
+                    f"Non-numeric columns: {non_numeric}. "
+                    f"Convert them to numeric or drop them before fitting."
+                )
             self.feature_names_ = list(X.columns)
-            X = X.values
+            X = X.values.astype(float)
         else:
             self.feature_names_ = None
             X = np.atleast_2d(np.asarray(X, dtype=float))

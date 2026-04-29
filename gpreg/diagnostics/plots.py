@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 # Seaborn is imported lazily inside the functions that use it, so users
 # without seaborn installed can still use the matplotlib-based plots.
 
-from .metrics import calibration_curve
 from ..utils.exceptions import NotFittedError
 
 
@@ -177,62 +176,6 @@ def plot_predictions_2d(gp, x1_range, x2_range, n_grid=50, ax=None,
     ax.set_ylabel("x2")
     ax.set_title(title)
     ax.legend(loc="upper right")
-    
-    return fig, ax
-
-
-def plot_calibration(y_true, y_mean, y_std, n_bins=10, ax=None):
-    """Plot observed vs expected coverage for the predictive distribution.
-    
-    A perfectly calibrated GP sits on the diagonal. Above-diagonal points
-    indicate under-confidence (the GP's intervals are wider than they
-    need to be). Below-diagonal points indicate over-confidence (intervals
-    too narrow — the bigger problem).
-    
-    Parameters
-    ----------
-    y_true : array-like
-        True values from a held-out set.
-    y_mean : array-like
-        Predicted means.
-    y_std : array-like
-        Predicted standard deviations.
-    n_bins : int, default=10
-        Number of confidence levels to evaluate.
-    ax : matplotlib axis, optional
-    
-    Returns
-    -------
-    fig, ax : matplotlib figure and axis
-    """
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 6))
-    else:
-        fig = ax.figure
-    
-    expected, observed = calibration_curve(y_true, y_mean, y_std, n_bins=n_bins)
-    
-    # Reference diagonal
-    ax.plot([0, 1], [0, 1], "k--", linewidth=1, label="Perfect calibration")
-    
-    # Actual calibration
-    ax.plot(expected, observed, "o-", color="C0", markersize=8,
-            linewidth=2, label="Observed")
-    
-    # Shade region of under/over confidence
-    ax.fill_between([0, 1], [0, 1], 1, alpha=0.05, color="green",
-                    label="Under-confident")
-    ax.fill_between([0, 1], 0, [0, 1], alpha=0.05, color="red",
-                    label="Over-confident")
-    
-    ax.set_xlabel("Expected coverage")
-    ax.set_ylabel("Observed coverage")
-    ax.set_title("Calibration diagram")
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.legend(loc="lower right", fontsize=8)
-    ax.grid(alpha=0.3)
-    ax.set_aspect("equal")
     
     return fig, ax
 

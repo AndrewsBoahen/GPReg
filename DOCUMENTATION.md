@@ -51,14 +51,16 @@ To install everything: `pip install -e .[all]`.
 
 ## Conceptual overview
 
-A Gaussian Process (GP) is a distribution over functions. Instead of fitting a single curve to your data, a GP gives you a probability distribution over all possible curves consistent with your data which means every prediction comes with an uncertainty estimate.
+A Gaussian Process (GP) is a distribution over functions. Instead of fitting a single curve to your data, a GP gives you a probability distribution over all possible curves consistent with your data — which means every prediction comes with an uncertainty estimate.
 
 A GP is fully specified by two things:
 
-- A **mean function** (we use zero by default)
+- A **mean function** (we use zero, after subtracting the mean of y)
 - A **kernel** (covariance function) that encodes assumptions about how outputs at nearby inputs should be correlated
 
-Fitting a GP doesn't change its functional form. The posterior distribution is also a GP conditioned on distribution on observed data. The "training" step in this package is actually hyperparameter optimization: finding kernel parameters (lengthscales, signal variance, noise variance) that maximize the marginal likelihood of the observed data.
+Fitting a GP doesn't change its functional form — it conditions the distribution on observed data. The "training" step in this package is actually hyperparameter optimization: finding kernel parameters (length-scales, signal variance, noise variance) that maximize the marginal likelihood of the observed data.
+
+**Inputs and outputs must be continuous (numeric).** GPReg does not support categorical variables; if your data has categorical features, you'll need to transform them to numeric (e.g., target encoding, learned embeddings) before passing them to GPReg.
 
 For a deeper introduction, the canonical reference is Rasmussen & Williams, *Gaussian Processes for Machine Learning* (2006), available free at gaussianprocess.org.
 
@@ -84,7 +86,7 @@ GaussianProcessRegressor(
 
 **Methods**
 
-- `fit(X, y)` — Optimize kernel hyperparameters by maximizing marginal log-likelihood. Accepts numpy arrays or pandas DataFrames.
+- `fit(X, y)` — Optimize kernel hyperparameters by maximizing marginal log-likelihood. Accepts numpy arrays or numeric pandas DataFrames; raises `ValueError` if non-numeric columns are present.
 - `predict(X, return_std=False, return_cov=False)` — Predict means; optionally return standard deviations or full covariance.
 - `sample_y(X, n_samples=1, random_state=None)` — Draw function samples from the posterior at points X.
 - `score(X, y)` — Return R² on test data.
@@ -179,7 +181,7 @@ MultiOutputGP(base_gp)   # base_gp is deep-copied per output
 
 **Methods**
 
-- `fit(X, Y)` — Y can be a 2D array `(n, p)`, a DataFrame, or a Series.
+- `fit(X, Y)` — Y must be numeric: a 2D array `(n, p)`, a numeric DataFrame, or a Series.
 - `predict(X, return_std=False)` — Returns `(m, p)` shaped arrays.
 - `score(X, Y)` — Mean R² across outputs.
 - `per_output_scores(X, Y)` — Array of R² per output.
@@ -207,7 +209,7 @@ mgp = MultiOutputGP(base)
 mgp.fit(X, Y)
 
 Y_mean, Y_std = mgp.predict(X_new, return_std=True)
-print(mgp.per_output_scores(X, Y))   # individual R² per output
+print(mgp.per_output_scores(X, Y))
 ```
 
 ---
@@ -274,10 +276,10 @@ from gpreg import RBF, Matern, Linear, White
 # Trend + smooth structure + noise
 k1 = Linear() + RBF() + White(0.1)
 
-# Product of kernels (e.g., periodic with locally smooth modulation)
+# Product of kernels
 k2 = RBF(length_scale=5.0) * Matern(length_scale=0.5, nu=1.5)
 
-# Multi-component noise model
+# Multi-component kernel
 k3 = (RBF() + Matern(nu=2.5)) * Linear() + White(0.05)
 ```
 
@@ -291,7 +293,7 @@ Live in `gpreg.preprocessing`.
 
 ### StandardScaler
 
-Standardize features to zero mean and unit variance. **Always scale your inputs before fitting a GP**; kernel lengthscales become meaningless when features have wildly different ranges.
+Standardize features to zero mean and unit variance. **Always scale your inputs before fitting a GP** — kernel length-scales become meaningless when features have wildly different ranges.
 
 ```python
 from gpreg import StandardScaler
@@ -303,26 +305,6 @@ X_back = scaler.inverse_transform(X_scaled)   # round-trip
 ```
 
 Constant columns (zero variance) are detected and left alone instead of producing NaN.
-
-### CategoricalEncoder
-
-Automatic dummy coding for non-numeric DataFrame columns.
-
-```python
-from gpreg import CategoricalEncoder
-
-encoder = CategoricalEncoder(
-    categorical_columns=None,   # auto-detect non-numeric columns
-    drop_first=True,            # avoid dummy variable trap
-)
-X_encoded = encoder.fit_transform(df)
-```
-
-Behavior:
-
-- If `categorical_columns=None`, columns with non-numeric dtypes are auto-detected.
-- During `transform`, unseen categories encode as all-zero dummies (i.e., treated as the reference level), so the encoder doesn't crash on test data with new values.
-- The original column order is not preserved. Categoricals are moved to the end after encoding.
 
 ### PCA
 
@@ -339,7 +321,7 @@ print(pca.explained_variance_ratio_)
 print(pca.n_components_)
 ```
 
-Useful for high-dimensional inputs where the curse of dimensionality hurts the GP. Computed via SVD rather than covariance eigendecomposition for numerical stability when features are nearly collinear (common after dummy coding).
+Useful for high-dimensional inputs where the curse of dimensionality hurts the GP. Computed via SVD rather than covariance eigendecomposition for numerical stability when features are nearly collinear.
 
 ### Pipeline
 
@@ -368,27 +350,26 @@ from gpreg import make_gp_pipeline, GaussianProcessRegressor, RBF, White
 
 pipe = make_gp_pipeline(
     GaussianProcessRegressor(kernel=RBF() + White(0.1)),
-    scale=True,                  # add StandardScaler
-    encode_categoricals=True,    # add CategoricalEncoder
-    pca_components=None,         # add PCA if not None
+    scale=True,                # add StandardScaler
+    pca_components=None,       # add PCA if not None
 )
 ```
 
-This is the simplest way to get a complete preprocessing-plus-GP pipeline that handles mixed-type DataFrames.
+This is the simplest way to get a complete preprocessing-plus-GP pipeline.
 
 ---
 
 ## Diagnostics
 
-Live in `gpreg.diagnostics`. Three core scalar metrics plus a calibration utility.
+Live in `gpreg.diagnostics`. Three core scalar metrics for assessing model quality.
 
 ### rmse(y_true, y_pred)
 
-Standard root mean squared error. Lower is better. Doesn't assess uncertainty, use NLPD for that.
+Standard root mean squared error. Lower is better. Doesn't assess uncertainty — use NLPD for that.
 
 ### nlpd(y_true, y_mean, y_std)
 
-Negative log predictive density. Evaluates the full predictive distribution against the truth. Penalizes both inaccurate means *and* poorly calibrated uncertainty: a confidently wrong prediction is punished more than an uncertain wrong one. Lower is better. Reported per data point (averaged), so values are comparable across datasets.
+Negative log predictive density. Evaluates the full predictive distribution against the truth. Penalizes both inaccurate means *and* poorly calibrated uncertainty: a confidently-wrong prediction is punished more than an uncertain wrong one. Lower is better. Reported per data point (averaged), so values are comparable across datasets.
 
 ### loo_cv(gp_model)
 
@@ -409,16 +390,6 @@ print(f"LOO RMSE: {results['loo_rmse']:.4f}")
 print(f"LOO NLPD: {results['loo_nlpd']:.4f}")
 ```
 
-### calibration_curve(y_true, y_mean, y_std, n_bins=10)
-
-Returns (expected, observed) coverage levels for a calibration plot. A perfectly calibrated GP sits on the diagonal: when it claims an interval contains 80% of the truth, it should actually contain 80% over many predictions.
-
-```python
-expected, observed = calibration_curve(y_test, y_mean, y_std)
-```
-
-Above the diagonal = under-confident (intervals too wide). Below = over-confident (intervals too narrow, the more dangerous failure mode).
-
 ---
 
 ## Plotting
@@ -429,7 +400,6 @@ Live in `gpreg.diagnostics`. All functions return `(fig, ax)` so you can customi
 |---|---|
 | `plot_predictions_1d(gp, X_test, ...)` | Mean + uncertainty band + training points + optional posterior samples |
 | `plot_predictions_2d(gp, x1_range, x2_range, plot_type="mean")` | Heatmap of predictive mean or std over a 2D grid |
-| `plot_calibration(y_true, y_mean, y_std)` | Diagonal calibration plot with under/over-confidence regions shaded |
 | `plot_residuals(y_true, y_mean, y_std=None)` | Standardized residuals vs predicted (or raw if no std given) |
 | `plot_kernel_heatmap(kernel, X)` | Visualize the kernel matrix as a seaborn heatmap |
 | `plot_pair(gp, X_test, feature_names=None)` | Predicted-y vs each input feature with others held at median |
@@ -437,7 +407,7 @@ Live in `gpreg.diagnostics`. All functions return `(fig, ax)` so you can customi
 Example:
 
 ```python
-from gpreg.diagnostics import plot_predictions_1d, plot_calibration
+from gpreg.diagnostics import plot_predictions_1d, plot_residuals
 import matplotlib.pyplot as plt
 
 fig, ax = plot_predictions_1d(gp, X_test, n_samples=3, true_fn=lambda x: np.sin(x))
@@ -474,7 +444,7 @@ All in `gpreg.utils`. All inherit from `GPRegError`.
 | `NotFittedError` | `predict()` or related method called on an unfitted model |
 | `InvalidHyperparameterError` | A hyperparameter is outside its valid range (e.g., negative length-scale) |
 
-Catch them like any other exception:
+In addition, GP models raise `ValueError` when given DataFrames with non-numeric columns.
 
 ```python
 from gpreg.utils import NonPSDMatrixError
@@ -500,7 +470,7 @@ gp.fit(X, y)
 fig, ax = plot_predictions_1d(gp, X_test, n_samples=3)
 ```
 
-### Workflow 2: Real DataFrame with categoricals and several features
+### Workflow 2: Numeric DataFrame with several features
 
 ```python
 from gpreg import make_gp_pipeline, GaussianProcessRegressor, RBF, White
@@ -508,7 +478,6 @@ from gpreg import make_gp_pipeline, GaussianProcessRegressor, RBF, White
 pipe = make_gp_pipeline(
     GaussianProcessRegressor(kernel=RBF() + White(0.1), n_restarts=5),
     scale=True,
-    encode_categoricals=True,
 )
 pipe.fit(df_train, y_train)
 y_mean, y_std = pipe.predict(df_test, return_std=True)
@@ -521,7 +490,7 @@ from gpreg import GaussianProcessRegressor, MultiOutputGP, RBF, White
 
 base = GaussianProcessRegressor(kernel=RBF() + White(0.1))
 mgp = MultiOutputGP(base)
-mgp.fit(X_train, Y_train)         # Y_train can be DataFrame or 2D array
+mgp.fit(X_train, Y_train)         # Y_train is numeric DataFrame or 2D array
 Y_mean, Y_std = mgp.predict(X_test, return_std=True)
 ```
 
@@ -543,7 +512,7 @@ sparse_gp.fit(X_large, y_large)
 ```python
 gp = GaussianProcessRegressor(
     kernel=RBF() + Matern(nu=1.5) + White(0.1),
-    optimizer="pytorch",      # use autograd
+    optimizer="pytorch",
     n_restarts=3,
 )
 gp.fit(X, y)
@@ -553,7 +522,7 @@ gp.fit(X, y)
 
 ```python
 from gpreg import rmse, nlpd, loo_cv
-from gpreg.diagnostics import plot_calibration, plot_residuals
+from gpreg.diagnostics import plot_residuals
 import matplotlib.pyplot as plt
 
 # Fit on train, predict on held-out test
@@ -568,10 +537,8 @@ print(f"NLPD: {nlpd(y_test, y_pred, y_std):.4f}")
 loo = loo_cv(gp)
 print(f"LOO RMSE: {loo['loo_rmse']:.4f}")
 
-# Visual diagnostics
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-plot_calibration(y_test, y_pred, y_std, ax=axes[0])
-plot_residuals(y_test, y_pred, y_std, ax=axes[1])
+# Residual diagnostic
+fig, ax = plot_residuals(y_test, y_pred, y_std)
 plt.show()
 ```
 
@@ -601,7 +568,7 @@ This is in `gpreg.utils.linalg` and is the numerical backbone of the package.
 Given a fitted GP with Cholesky factor L and α = K⁻¹ y, the predictive distribution at test points X* is Gaussian with:
 
 ```
-mean      = K(X*, X) α
+mean       = K(X*, X) α
 covariance = K(X*, X*) - K(X*, X) K⁻¹ K(X, X*)
 ```
 
@@ -628,7 +595,7 @@ Naive leave-one-out for a GP would require refitting the model n times (O(n⁴) 
 σ²_i^loo = 1 / [K⁻¹]_ii
 ```
 
-This drops the cost to O(n²) per evaluation given the existing Cholesky factor — a huge practical win.
+This drops the cost to O(n²) per evaluation given the existing Cholesky factor.
 
 ---
 
@@ -652,11 +619,12 @@ For the SciPy vs PyTorch optimizers: SciPy's L-BFGS-B with analytical computatio
 
 Things this package does *not* do, that you should know about if your application needs them:
 
-- **Genuinely correlated multi-output GPs.** `MultiOutputGP` fits independent GPs per output. For sharing information across outputs (e.g., when one output is much more densely observed than another), you'd want a Linear Model of Coregionalization or a multi-task kernel. Not implemented.
-- **Categorical kernels.** Categorical features are dummy-coded and treated as continuous 0/1 dimensions. This works but isn't optimal for categoricals with many levels or important non-linear interactions.
+- **Categorical inputs or outputs.** GPReg accepts continuous (numeric) data only. If your problem has categorical features, transform them to numeric before passing them in (target encoding, learned embeddings, or a separate categorical model that you combine with the GP for residuals).
+- **Genuinely correlated multi-output GPs.** `MultiOutputGP` fits independent GPs per output. For sharing information across outputs (e.g., when one output is much more densely observed than another), you'd want a Linear Model of Coregionalization or a multi-task kernel.
+- **Calibration assessment.** Calibration plots and metrics are not provided. If you need to assess whether your GP's confidence intervals contain the true value at the rate they claim to, you can implement a check using the predictive `(mean, std)` from `predict(return_std=True)` and `scipy.stats.norm`.
 - **Non-Gaussian likelihoods.** This is a regression-only package — classification, count data (Poisson), and other non-Gaussian likelihoods would require approximate inference (Laplace, EP, variational), which isn't implemented.
-- **Scalable inducing-point optimization.** `SparseGPRegressor` fixes inducing point locations after initialization rather than optimizing them jointly with hyperparameters. Optimizing them is a stretch goal that would meaningfully improve sparse GP accuracy.
-- **GPU support.** The PyTorch backend is set up to make this easy but doesn't currently move tensors to GPU — adding `device` handling would be a small change.
+- **Scalable inducing-point optimization.** `SparseGPRegressor` fixes inducing point locations after initialization rather than optimizing them jointly with hyperparameters.
+- **GPU support.** The PyTorch backend is set up to make this easy but doesn't currently move tensors to GPU.
 - **Streaming / online learning.** All training data must fit in memory.
 
 If you hit any of these limits, GPyTorch (https://gpytorch.ai/) is a great mature library that handles them all.

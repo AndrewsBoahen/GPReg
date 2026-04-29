@@ -4,14 +4,12 @@ Run with:
     streamlit run app.py
 
 Features:
-- Upload a CSV or use built-in demo datasets
-- Pick target column and feature columns
+- Upload a CSV (numeric columns only) or use built-in demo datasets
+- Pick target column(s) and feature columns (all must be continuous)
 - Choose kernel (RBF, Matern 1/2, 3/2, 5/2)
 - Toggle exact vs sparse GP
-- See predictions, calibration, residuals, and diagnostics
+- See predictions, residuals, and diagnostic metrics
 """
-
-import io
 
 import numpy as np
 import pandas as pd
@@ -21,6 +19,7 @@ import streamlit as st
 from gpreg import (
     GaussianProcessRegressor,
     SparseGPRegressor,
+    MultiOutputGP,
     RBF,
     Matern,
     White,
@@ -30,9 +29,7 @@ from gpreg import (
     loo_cv,
 )
 from gpreg.diagnostics import (
-    plot_predictions_1d,
     plot_predictions_2d,
-    plot_calibration,
     plot_residuals,
 )
 
@@ -41,8 +38,9 @@ st.set_page_config(page_title="GPReg Demo", layout="wide")
 
 st.title("GPReg — Gaussian Process Regression")
 st.caption(
-    "Interactive demo of the GPReg package. Upload a dataset or pick a demo, "
-    "configure the kernel, and watch the GP fit in real time."
+    "Interactive demo of the GPReg package. Upload a numeric dataset or pick "
+    "a demo, configure the kernel, and watch the GP fit in real time. "
+    "GPReg accepts continuous (numeric) inputs and outputs only."
 )
 
 
@@ -53,7 +51,7 @@ st.sidebar.header("1. Data")
 
 data_source = st.sidebar.radio(
     "Source",
-    ["Demo: 1D sine", "Demo: 2D peaks", "Demo: mixed-types DataFrame", "Upload CSV"],
+    ["Demo: 1D sine", "Demo: 2D peaks", "Demo: multi-output", "Upload CSV"],
 )
 
 
@@ -75,23 +73,15 @@ def load_demo_2d(seed=42, n=120):
 
 
 @st.cache_data
-def load_demo_mixed(seed=42, n=200):
+def load_demo_multi(seed=42, n=80):
     rng = np.random.default_rng(seed)
-    df = pd.DataFrame({
-        "temperature": rng.uniform(10, 30, n),
-        "humidity": rng.uniform(0.2, 0.9, n),
-        "season": rng.choice(["spring", "summer", "fall", "winter"], n),
+    x = np.linspace(-3, 3, n)
+    return pd.DataFrame({
+        "x": x,
+        "sin":      np.sin(x) + 0.1 * rng.standard_normal(n),
+        "cos":      np.cos(x) + 0.1 * rng.standard_normal(n),
+        "parabola": 0.5 * x ** 2 - 1.0 + 0.1 * rng.standard_normal(n),
     })
-    season_effect = df["season"].map(
-        {"spring": 1.0, "summer": 2.5, "fall": 0.5, "winter": -1.0}
-    )
-    df["y"] = (
-        0.1 * df["temperature"]
-        - 1.5 * df["humidity"]
-        + season_effect
-        + 0.2 * rng.standard_normal(n)
-    )
-    return df
 
 
 df = None
@@ -99,15 +89,26 @@ if data_source == "Demo: 1D sine":
     df = load_demo_1d()
 elif data_source == "Demo: 2D peaks":
     df = load_demo_2d()
-elif data_source == "Demo: mixed-types DataFrame":
-    df = load_demo_mixed()
+elif data_source == "Demo: multi-output":
+    df = load_demo_multi()
 else:
-    upload = st.sidebar.file_uploader("CSV file", type=["csv"])
+    upload = st.sidebar.file_uploader("CSV file (numeric columns only)", type=["csv"])
     if upload is not None:
         df = pd.read_csv(upload)
 
 if df is None:
     st.info("← Pick a demo dataset or upload a CSV in the sidebar to get started.")
+    st.stop()
+
+# Check that uploaded data is fully numeric
+from pandas.api.types import is_numeric_dtype
+non_numeric = [c for c in df.columns if not is_numeric_dtype(df[c])]
+if non_numeric:
+    st.error(
+        f"GPReg accepts continuous (numeric) data only. The following columns are "
+        f"non-numeric and cannot be used: {non_numeric}. Please convert them to "
+        f"numeric or drop them from your CSV."
+    )
     st.stop()
 
 st.subheader("Data preview")
@@ -125,14 +126,14 @@ if multi_target:
     if not target_cols:
         st.error("Pick at least one target column.")
         st.stop()
-    target_col = target_cols[0]  # for compatibility with downstream UI checks
 else:
     target_col = st.sidebar.selectbox(
         "Target column",
         all_columns,
-        index=len(all_columns) - 1,  # default: last column
+        index=len(all_columns) - 1,
     )
     target_cols = [target_col]
+
 feature_cols = st.sidebar.multiselect(
     "Feature columns",
     [c for c in all_columns if c not in target_cols],
@@ -153,21 +154,12 @@ kernel_choice = st.sidebar.selectbox(
     "Kernel",
     ["RBF", "Matern 1/2", "Matern 3/2", "Matern 5/2"],
 )
-init_length_scale = st.sidebar.slider(
-    "Initial length-scale", 0.1, 5.0, 1.0, 0.1
-)
-init_noise = st.sidebar.slider(
-    "Initial noise variance", 0.001, 1.0, 0.1, 0.01
-)
+init_length_scale = st.sidebar.slider("Initial length-scale", 0.1, 5.0, 1.0, 0.1)
+init_noise = st.sidebar.slider("Initial noise variance", 0.001, 1.0, 0.1, 0.01)
 
-model_type = st.sidebar.radio(
-    "Model type",
-    ["Exact GP", "Sparse GP (FITC)"],
-)
+model_type = st.sidebar.radio("Model type", ["Exact GP", "Sparse GP (FITC)"])
 if model_type == "Sparse GP (FITC)":
-    n_inducing = st.sidebar.slider(
-        "Inducing points", 10, 200, 50, 10
-    )
+    n_inducing = st.sidebar.slider("Inducing points", 10, 200, 50, 10)
 
 n_restarts = st.sidebar.slider("Optimization restarts", 0, 10, 3)
 random_state = st.sidebar.number_input("Random seed", value=0)
@@ -197,10 +189,7 @@ def build_model():
             n_restarts=n_restarts, random_state=int(random_state),
         )
     
-    # If user picked multiple targets, wrap in MultiOutputGP.
-    # Otherwise, use the single-output pipeline as before.
     if len(target_cols) > 1:
-        from gpreg import MultiOutputGP
         return MultiOutputGP(make_gp_pipeline(gp))
     else:
         return make_gp_pipeline(gp)
@@ -217,7 +206,7 @@ if fit_button:
         try:
             X_df = df[feature_cols]
             if len(target_cols) > 1:
-                y = df[target_cols]  # DataFrame
+                y = df[target_cols]
             else:
                 y = df[target_cols[0]].values.astype(float)
             pipe = build_model()
@@ -255,8 +244,7 @@ if pipe is not None:
         st.metric("Output dimensions", len(cfg["target_cols"]))
     with col2:
         try:
-            st.metric("Log marginal likelihood",
-                      f"{pipe.log_marginal_likelihood_:.2f}")
+            st.metric("Log marginal likelihood", f"{pipe.log_marginal_likelihood_:.2f}")
         except Exception:
             try:
                 st.metric("Log marginal likelihood",
@@ -264,7 +252,6 @@ if pipe is not None:
             except Exception:
                 pass
     
-    # Display fitted kernels (one per output for multi-output)
     if cfg["multi_target"]:
         st.subheader("Fitted kernels per output")
         for name, sub_pipe in zip(cfg["target_cols"], pipe.estimators_):
@@ -272,15 +259,12 @@ if pipe is not None:
     else:
         st.code(repr(pipe.estimator.kernel), language="text")
     
-    # Predictions
     y_pred, y_std = pipe.predict(X_df, return_std=True)
     
     st.header("Predictions")
     
     if cfg["multi_target"]:
-        # Show a predicted-vs-actual plot for each output
         y_arr = y.values if hasattr(y, "values") else np.asarray(y)
-        
         n_out = len(cfg["target_cols"])
         fig, axes = plt.subplots(1, n_out, figsize=(5 * n_out, 5), squeeze=False)
         for j, (name, ax) in enumerate(zip(cfg["target_cols"], axes[0])):
@@ -300,7 +284,6 @@ if pipe is not None:
         plt.close(fig)
     
     elif len(cfg["feature_cols"]) == 1:
-        # 1D: plot prediction curve
         col_name = cfg["feature_cols"][0]
         x_min, x_max = X_df[col_name].min(), X_df[col_name].max()
         margin = 0.15 * (x_max - x_min)
@@ -325,7 +308,6 @@ if pipe is not None:
     elif len(cfg["feature_cols"]) == 2 and all(
         pd.api.types.is_numeric_dtype(X_df[c]) for c in cfg["feature_cols"]
     ):
-        # 2D numeric: heatmap
         c1, c2 = cfg["feature_cols"]
         x1_range = (X_df[c1].min(), X_df[c1].max())
         x2_range = (X_df[c2].min(), X_df[c2].max())
@@ -363,7 +345,7 @@ if pipe is not None:
             st.pyplot(fig)
             plt.close(fig)
     else:
-        # Higher dim or mixed types: show predicted vs actual
+        # Higher dim: show predicted vs actual
         fig, ax = plt.subplots(figsize=(7, 6))
         lo, hi = min(y.min(), y_pred.min()), max(y.max(), y_pred.max())
         ax.plot([lo, hi], [lo, hi], "k--", alpha=0.5, label="y = x")
@@ -383,7 +365,6 @@ if pipe is not None:
     st.header("Diagnostics")
     
     if cfg["multi_target"]:
-        # Show per-output metrics in a table
         y_arr = y.values if hasattr(y, "values") else np.asarray(y)
         rows = []
         for j, name in enumerate(cfg["target_cols"]):
@@ -395,23 +376,14 @@ if pipe is not None:
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
         st.caption(
             "ℹ️ Each output has its own independent GP with its own hyperparameters. "
-            "Diagnostic plots (calibration, residuals) are shown for the first output below."
+            "Residual plot below is shown for the first output only."
         )
-        # Show calibration/residuals only for first output to keep the UI tidy
         first_idx = 0
-        plot_col1, plot_col2 = st.columns(2)
-        with plot_col1:
-            fig, _ = plot_calibration(y_arr[:, first_idx], y_pred[:, first_idx],
-                                      y_std[:, first_idx], n_bins=10)
-            fig.suptitle(f"Calibration: {cfg['target_cols'][first_idx]}")
-            st.pyplot(fig)
-            plt.close(fig)
-        with plot_col2:
-            fig, _ = plot_residuals(y_arr[:, first_idx], y_pred[:, first_idx],
-                                    y_std[:, first_idx])
-            fig.suptitle(f"Residuals: {cfg['target_cols'][first_idx]}")
-            st.pyplot(fig)
-            plt.close(fig)
+        fig, _ = plot_residuals(y_arr[:, first_idx], y_pred[:, first_idx],
+                                y_std[:, first_idx])
+        fig.suptitle(f"Residuals: {cfg['target_cols'][first_idx]}")
+        st.pyplot(fig)
+        plt.close(fig)
     else:
         diag_col1, diag_col2, diag_col3 = st.columns(3)
         train_rmse = rmse(y, y_pred)
@@ -431,21 +403,14 @@ if pipe is not None:
             else:
                 st.metric("LOO-CV RMSE", "N/A (sparse)")
         
-        # Calibration + residuals
-        plot_col1, plot_col2 = st.columns(2)
-        with plot_col1:
-            fig, _ = plot_calibration(y, y_pred, y_std, n_bins=10)
-            st.pyplot(fig)
-            plt.close(fig)
-        with plot_col2:
-            fig, _ = plot_residuals(y, y_pred, y_std)
-            st.pyplot(fig)
-            plt.close(fig)
+        fig, _ = plot_residuals(y, y_pred, y_std)
+        st.pyplot(fig)
+        plt.close(fig)
         
         st.caption(
-            "ℹ️ Calibration above the diagonal = under-confident (intervals too wide). "
-            "Below = over-confident (intervals too narrow, which is the bigger problem). "
-            "Standardized residuals should mostly fall within ±2 with no obvious pattern."
+            "ℹ️ Standardized residuals should mostly fall within ±2 with no obvious "
+            "pattern. Strong patterns suggest the kernel choice or hyperparameters "
+            "could be improved."
         )
 
 else:

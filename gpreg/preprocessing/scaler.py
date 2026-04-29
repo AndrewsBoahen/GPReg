@@ -47,8 +47,20 @@ class Transformer(ABC):
         return self.fit(X, y).transform(X)
     
     def _to_array(self, X):
-        """Convert input to a 2D numpy array, preserving column names."""
+        """Convert input to a 2D numpy array, preserving column names.
+        
+        DataFrames must contain only numeric columns — categorical/string
+        columns are rejected with an informative error.
+        """
         if isinstance(X, pd.DataFrame):
+            from pandas.api.types import is_numeric_dtype
+            non_numeric = [c for c in X.columns if not is_numeric_dtype(X[c])]
+            if non_numeric:
+                raise ValueError(
+                    f"GPReg only accepts continuous (numeric) inputs. "
+                    f"The following columns are non-numeric: {non_numeric}. "
+                    f"Convert them to numeric or drop them before fitting."
+                )
             self.feature_names_in_ = list(X.columns)
             return X.values.astype(float)
         else:

@@ -2,9 +2,10 @@
 
 A from-scratch GP regression package with:
 - Exact and sparse (FITC) GP regression
+- Multivariate inputs and outputs (continuous only)
 - Composable kernels (RBF, Matern, Linear, White) with + and * operators
-- Diagnostic suite (RMSE, NLPD, LOO-CV, calibration plots)
-- Preprocessing pipeline (scaling, dummy coding, PCA)
+- Diagnostic suite (RMSE, NLPD, LOO-CV)
+- Preprocessing pipeline (scaling, PCA)
 
 Quick start
 -----------
@@ -19,18 +20,17 @@ Quick start
 >>> y_mean, y_std = gp.predict(np.linspace(-4, 4, 100).reshape(-1, 1), return_std=True)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .models import GaussianProcessRegressor, SparseGPRegressor, MultiOutputGP
 from .kernels import Kernel, RBF, Matern, Linear, White
 from .preprocessing import (
     StandardScaler,
-    CategoricalEncoder,
     PCA,
     Pipeline,
     make_gp_pipeline,
 )
-from .diagnostics import rmse, nlpd, loo_cv, calibration_curve
+from .diagnostics import rmse, nlpd, loo_cv
 from .utils import save_model, load_model
 
 __all__ = [
@@ -43,14 +43,12 @@ __all__ = [
     "Linear",
     "White",
     "StandardScaler",
-    "CategoricalEncoder",
     "PCA",
     "Pipeline",
     "make_gp_pipeline",
     "rmse",
     "nlpd",
     "loo_cv",
-    "calibration_curve",
     "save_model",
     "load_model",
 ]

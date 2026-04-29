@@ -71,8 +71,16 @@ class SparseGPRegressor:
     
     def _to_array(self, X, y=None):
         if isinstance(X, pd.DataFrame):
+            from pandas.api.types import is_numeric_dtype
+            non_numeric = [c for c in X.columns if not is_numeric_dtype(X[c])]
+            if non_numeric:
+                raise ValueError(
+                    f"GPReg only accepts continuous (numeric) inputs. "
+                    f"Non-numeric columns: {non_numeric}. "
+                    f"Convert them to numeric or drop them before fitting."
+                )
             self.feature_names_ = list(X.columns)
-            X = X.values
+            X = X.values.astype(float)
         else:
             self.feature_names_ = None
             X = np.atleast_2d(np.asarray(X, dtype=float))

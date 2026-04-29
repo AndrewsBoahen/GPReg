@@ -113,8 +113,7 @@ class Pipeline:
         return f"Pipeline([\n  {steps_str}\n])"
 
 
-def make_gp_pipeline(model, scale=True, encode_categoricals=True,
-                      pca_components=None):
+def make_gp_pipeline(model, scale=True, pca_components=None):
     """Convenience factory for the standard GP preprocessing pipeline.
     
     Parameters
@@ -123,8 +122,6 @@ def make_gp_pipeline(model, scale=True, encode_categoricals=True,
         The final GP estimator.
     scale : bool, default=True
         Whether to standardize features.
-    encode_categoricals : bool, default=True
-        Whether to dummy-code object/category columns automatically.
     pca_components : int, float, or None, default=None
         If set, add a PCA step with this many components (or variance ratio).
     
@@ -132,13 +129,10 @@ def make_gp_pipeline(model, scale=True, encode_categoricals=True,
     -------
     pipeline : Pipeline
     """
-    from .categorical import CategoricalEncoder
     from .scaler import StandardScaler
     from .pca import PCA
     
     steps = []
-    if encode_categoricals:
-        steps.append(("encode", CategoricalEncoder()))
     if scale:
         steps.append(("scale", StandardScaler()))
     if pca_components is not None:
