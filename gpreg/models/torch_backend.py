@@ -5,7 +5,7 @@ GaussianProcessRegressor.fit(). Uses PyTorch's autograd to compute
 gradients of the marginal log-likelihood automatically, avoiding the
 need to derive them by hand or rely on finite-difference approximations.
 
-This is the same approach GPyTorch takes — autograd makes it trivial
+This is the same approach GPyTorch takes; autograd makes it trivial
 to support arbitrary new kernel compositions. To use:
 
     gp = GaussianProcessRegressor(kernel=..., optimizer="pytorch")
