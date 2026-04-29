@@ -22,7 +22,7 @@ I developped this Python Gaussian Process Regression package for my final projec
 - **Persistence:**  save and load fitted models via pickle
 - **Streamlit app:** interactive frontend for non-coders
 
-> **Note:** GPReg accepts only continuous (numeric) inputs and outputs only. Categorical features must be transformed to numeric before being passed in.
+> **Note:** GPReg accepts only continuous (numeric) inputs and outputs. Categorical features must be transformed to numeric before being passed in.
 
 ## Installation
 
