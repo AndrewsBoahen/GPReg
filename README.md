@@ -5,7 +5,7 @@ I developped this Python Gaussian Process Regression package for my final projec
 **I used Claude AI to learn more about some aspects of this project such as:**
 
 1. Adding Pytorch functionalities as a possible option during model training (hyperparameter estimation)
-2. Creating .gitignore and .toml files and their usage
+2. Creating .gitignore, pickle and .toml files and their usage
 3. Creating a LICENSE
 
 📖 **[Full documentation](DOCUMENTATION.md)** | 📓 **[Demo notebook](examples/demo.ipynb)**
