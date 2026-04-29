@@ -51,18 +51,18 @@ To install everything: `pip install -e .[all]`.
 
 ## Conceptual overview
 
-A Gaussian Process (GP) is a distribution over functions. Instead of fitting a single curve to your data, a GP gives you a probability distribution over all possible curves consistent with your data — which means every prediction comes with an uncertainty estimate.
+A Gaussian Process (GP) is a distribution over functions. Instead of fitting a single curve to our data, a GP gives us a probability distribution over all possible curves consistent with your data. The mean function is then selected as our fitted curve and the kernel function furnishes us with uncertainty estimates.
 
 A GP is fully specified by two things:
 
-- A **mean function** (we use zero, after subtracting the mean of y)
+- A **mean function** (we use zero by default)
 - A **kernel** (covariance function) that encodes assumptions about how outputs at nearby inputs should be correlated
 
-Fitting a GP doesn't change its functional form — it conditions the distribution on observed data. The "training" step in this package is actually hyperparameter optimization: finding kernel parameters (length-scales, signal variance, noise variance) that maximize the marginal likelihood of the observed data.
+The "training" step in this package is actually hyperparameter optimization: finding kernel parameters (length-scales, signal variance, noise variance) that maximize the marginal likelihood of the observed data. 
 
 **Inputs and outputs must be continuous (numeric).** GPReg does not support categorical variables; if your data has categorical features, you'll need to transform them to numeric (e.g., target encoding, learned embeddings) before passing them to GPReg.
 
-For a deeper introduction, the canonical reference is Rasmussen & Williams, *Gaussian Processes for Machine Learning* (2006), available free at gaussianprocess.org.
+For a deeper introduction to Gaussian Processes, the canonical reference is Rasmussen & Williams, *Gaussian Processes for Machine Learning* (2006), available free at gaussianprocess.org.
 
 ---
 
@@ -86,18 +86,18 @@ GaussianProcessRegressor(
 
 **Methods**
 
-- `fit(X, y)` — Optimize kernel hyperparameters by maximizing marginal log-likelihood. Accepts numpy arrays or numeric pandas DataFrames; raises `ValueError` if non-numeric columns are present.
-- `predict(X, return_std=False, return_cov=False)` — Predict means; optionally return standard deviations or full covariance.
-- `sample_y(X, n_samples=1, random_state=None)` — Draw function samples from the posterior at points X.
-- `score(X, y)` — Return R² on test data.
+- `fit(X, y)`: Optimize kernel hyperparameters by maximizing marginal log-likelihood. Accepts numpy arrays or numeric pandas DataFrames; raises `ValueError` if non-numeric columns are present.
+- `predict(X, return_std=False, return_cov=False)`: Predict means; optionally return standard deviations or full covariance.
+- `sample_y(X, n_samples=1, random_state=None)`: Draw function samples from the posterior at points X.
+- `score(X, y)`: Return R² on test data.
 
 **Attributes (after fitting)**
 
-- `X_train_`, `y_train_` — Stored training data
-- `L_` — Cholesky factor of the kernel matrix
-- `alpha_` — Solution to K @ α = y, used for prediction
-- `log_marginal_likelihood_` — Final log marginal likelihood
-- `kernel` — Kernel with optimized hyperparameters
+- `X_train_`, `y_train_`: Stored training data
+- `L_`: Cholesky factor of the kernel matrix
+- `alpha_`: Solution to K @ α = y, used for prediction
+- `log_marginal_likelihood_`: Final log marginal likelihood
+- `kernel`: Kernel with optimized hyperparameters
 
 **Example**
 
@@ -119,8 +119,7 @@ samples = gp.sample_y(X_test, n_samples=5)  # shape (100, 5)
 ---
 
 ### SparseGPRegressor
-
-Sparse GP using the FITC (Fully Independent Training Conditional) approximation. Reduces complexity from O(n³) to O(n·m²), where m is the number of inducing points. Suitable for n in the tens of thousands.
+Sparse GP using the FITC (Fully Independent Training Conditional) approximation. Reduces complexity from O(n³) to O(n·m²), where m is the number of inducing points. Suitable for n in the tens of thousands since GP becomes undesirable when sample size becomes large.
 
 **Constructor**
 
@@ -129,7 +128,7 @@ SparseGPRegressor(
     kernel=None,
     n_inducing=100,                # Number of inducing points (m)
     inducing_strategy="kmeans",    # "kmeans", "random", or "subset"
-    optimize_inducing=False,       # (not yet implemented)
+    optimize_inducing=False,       # (not yet implemented; might do this over the summer)
     normalize_y=True,
     n_restarts=3,
     random_state=None,
@@ -142,7 +141,7 @@ Same `fit`, `predict`, `score` API as `GaussianProcessRegressor`. Note: `sample_
 
 **Attributes**
 
-- `Z_` — Inducing point locations after fitting (shape `(n_inducing, d)`)
+- `Z_`: Inducing point locations after fitting (shape `(n_inducing, d)`)
 - All other attributes match the exact GP
 
 **When to use it**
@@ -181,17 +180,17 @@ MultiOutputGP(base_gp)   # base_gp is deep-copied per output
 
 **Methods**
 
-- `fit(X, Y)` — Y must be numeric: a 2D array `(n, p)`, a numeric DataFrame, or a Series.
-- `predict(X, return_std=False)` — Returns `(m, p)` shaped arrays.
-- `score(X, Y)` — Mean R² across outputs.
-- `per_output_scores(X, Y)` — Array of R² per output.
+- `fit(X, Y)`: Y must be numeric: a 2D array `(n, p)`, a numeric DataFrame, or a Series.
+- `predict(X, return_std=False)`: Returns `(m, p)` shaped arrays.
+- `score(X, Y)`: Mean R² across outputs.
+- `per_output_scores(X, Y)`: Array of R² per output.
 
 **Attributes**
 
-- `estimators_` — List of one fitted GP per output
-- `n_outputs_` — Number of output dimensions
-- `output_names_` — Column names if Y was a DataFrame, else None
-- `log_marginal_likelihood_` — Sum across outputs
+- `estimators_`: List of one fitted GP per output
+- `n_outputs_`: Number of output dimensions
+- `output_names_`: Column names if Y was a DataFrame, else None
+- `log_marginal_likelihood_`: Sum across outputs
 
 **Example**
 
@@ -293,7 +292,7 @@ Live in `gpreg.preprocessing`.
 
 ### StandardScaler
 
-Standardize features to zero mean and unit variance. **Always scale your inputs before fitting a GP** — kernel length-scales become meaningless when features have wildly different ranges.
+Standardize features to zero mean and unit variance. **Always scale your inputs before fitting a GP.**  Kernel length-scales become meaningless when features have wildly different ranges.
 
 ```python
 from gpreg import StandardScaler
@@ -365,11 +364,11 @@ Live in `gpreg.diagnostics`. Three core scalar metrics for assessing model quali
 
 ### rmse(y_true, y_pred)
 
-Standard root mean squared error. Lower is better. Doesn't assess uncertainty — use NLPD for that.
+Standard root mean squared error. Lower is better!
 
 ### nlpd(y_true, y_mean, y_std)
 
-Negative log predictive density. Evaluates the full predictive distribution against the truth. Penalizes both inaccurate means *and* poorly calibrated uncertainty: a confidently-wrong prediction is punished more than an uncertain wrong one. Lower is better. Reported per data point (averaged), so values are comparable across datasets.
+Negative log predictive density. It Evaluates the full predictive distribution against the truth. Penalizes both inaccurate means *and* poorly calibrated uncertainty: a confidently-wrong prediction is punished more than an uncertain wrong one. Lower is better. Reported per data point (averaged), so values are comparable across datasets.
 
 ### loo_cv(gp_model)
 
@@ -556,7 +555,7 @@ log p(y | X, θ) = -½ yᵀ K⁻¹ y - ½ log|K| - n/2 log(2π)
 
 where K is the kernel matrix at the training inputs (with hyperparameters θ) plus noise. We minimize the negative of this with respect to θ.
 
-In practice the inverse and determinant are never computed directly — instead we Cholesky-factor K = L Lᵀ, then:
+In practice the inverse and determinant are never computed directly. We instead use a Cholesky decompositiob K = L Lᵀ, then:
 
 - Solve `L Lᵀ α = y` via two triangular solves (gives `K⁻¹ y`)
 - `log|K| = 2 Σᵢ log(Lᵢᵢ)` (avoids overflow)
@@ -620,9 +619,8 @@ For the SciPy vs PyTorch optimizers: SciPy's L-BFGS-B with analytical computatio
 Things this package does *not* do, that you should know about if your application needs them:
 
 - **Categorical inputs or outputs.** GPReg accepts continuous (numeric) data only. If your problem has categorical features, transform them to numeric before passing them in (target encoding, learned embeddings, or a separate categorical model that you combine with the GP for residuals).
-- **Genuinely correlated multi-output GPs.** `MultiOutputGP` fits independent GPs per output. For sharing information across outputs (e.g., when one output is much more densely observed than another), you'd want a Linear Model of Coregionalization or a multi-task kernel.
-- **Calibration assessment.** Calibration plots and metrics are not provided. If you need to assess whether your GP's confidence intervals contain the true value at the rate they claim to, you can implement a check using the predictive `(mean, std)` from `predict(return_std=True)` and `scipy.stats.norm`.
-- **Non-Gaussian likelihoods.** This is a regression-only package — classification, count data (Poisson), and other non-Gaussian likelihoods would require approximate inference (Laplace, EP, variational), which isn't implemented.
+- **Genuinely correlated multi-output GPs.** `MultiOutputGP` fits independent GPs per output. For sharing information across outputs (e.g., when one output is much more densely observed than another), you would want a Linear Model of Coregionalization or a multi-task kernel.
+- **Non-Gaussian likelihoods.** This is a regression-only package. Classification, count data (Poisson), and other non-Gaussian likelihoods would require approximate inference (Laplace, EP, variational), which isn't implemented.
 - **Scalable inducing-point optimization.** `SparseGPRegressor` fixes inducing point locations after initialization rather than optimizing them jointly with hyperparameters.
 - **GPU support.** The PyTorch backend is set up to make this easy but doesn't currently move tensors to GPU.
 - **Streaming / online learning.** All training data must fit in memory.
