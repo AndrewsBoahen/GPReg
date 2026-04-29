@@ -17,7 +17,7 @@ def rmse(y_true, y_pred):
     """Root mean squared error.
     
     Standard regression metric for point predictions. Lower is better.
-    Uses the predictive mean only — does not assess uncertainty quality.
+    Uses the predictive mean only; it does not assess uncertainty quality.
     
     Parameters
     ----------
