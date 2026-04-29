@@ -17,7 +17,7 @@ PyTorch has more per-iteration overhead. The autograd version becomes
 preferable when (a) you've defined a custom kernel that's hard to
 differentiate analytically, or (b) you're running on a GPU.
 
-This module is optional — if PyTorch isn't installed, importing it
+This module is optional  if PyTorch isn't installed, importing it
 raises a clean error rather than crashing the whole package.
 """
 
