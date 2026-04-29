@@ -1,12 +1,10 @@
 """Principal Component Analysis for GP feature reduction.
 
-GPs suffer from the curse of dimensionality — with many input features,
-length-scales become hard to estimate and the kernel matrix loses
-discriminative power. PCA can help by projecting to a lower-dim
-subspace that retains most of the variance.
+GPs suffer from the curse of dimensionality as it becomes hard to estimate hyperparameters.
+PCA can help by projecting to a lower-dimensional subspace that retains most of the variance.
 
 Implementation note: we compute PCA via SVD rather than the covariance
-eigendecomposition, because SVD is more numerically stable when some
+eigendecomposition, because I learnt that SVD is more numerically stable when some
 features are nearly collinear (a common situation after dummy coding).
 """
 
