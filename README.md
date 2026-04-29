@@ -12,17 +12,17 @@ I developped this Python Gaussian Process Regression package for my final projec
 
 ## Features
 
-- **Exact and sparse GP regression** — exact GP for small data, FITC sparse GP for n > 5000
-- **Multivariate inputs and outputs** — continuous (numeric) only, with support for multiple targets via `MultiOutputGP`
-- **Composable kernels** — RBF, Matérn (ν = 1/2, 3/2, 5/2), Linear, White, with `+` and `*` operators
-- **Diagnostic suite** — RMSE, NLPD, leave-one-out CV (closed-form), residual plots
-- **Preprocessing pipeline** — standard scaling and PCA, chainable with the model
-- **DataFrame-friendly** — pass numeric pandas DataFrames in directly
-- **Two optimizer backends** — SciPy L-BFGS-B (default, fast) or PyTorch Adam (autograd, flexible)
-- **Persistence** — save and load fitted models via pickle
-- **Streamlit app** — interactive frontend for non-coders
+- **Exact and sparse GP regression:**  exact GP for small data, FITC sparse GP for n > 5000
+- **Multivariate inputs and outputs:** — continuous (numeric) only, with support for multiple targets via `MultiOutputGP`
+- **Composable kernels:**  RBF, Matérn (ν = 1/2, 3/2, 5/2), Linear, White, with `+` and `*` operators
+- **Diagnostic suite:**  RMSE, NLPD, leave-one-out CV (closed-form), residual plots
+- **Preprocessing pipeline:**  standard scaling and PCA, chainable with the model
+- **DataFrame-friendly:**  pass numeric pandas DataFrames in directly
+- **Two optimizer backends:**  SciPy L-BFGS-B (default, fast) or PyTorch Adam (autograd, flexible)
+- **Persistence:**  save and load fitted models via pickle
+- **Streamlit app:** interactive frontend for non-coders
 
-> **Note:** GPReg accepts continuous (numeric) inputs and outputs only. Categorical features must be transformed to numeric (e.g., target encoding, embeddings) before being passed in.
+> **Note:** GPReg accepts only continuous (numeric) inputs and outputs only. Categorical features must be transformed to numeric before being passed in.
 
 ## Installation
 
