@@ -316,7 +316,7 @@ if pipe is not None:
         ax.scatter(X_df[col_name], y, color="black", s=20, zorder=5,
                    label="Training data")
         ax.set_xlabel(col_name)
-        ax.set_ylabel(cfg["target_col"])
+        ax.set_ylabel(cfg["target_cols"][0])
         ax.legend()
         ax.grid(alpha=0.3)
         st.pyplot(fig)
@@ -369,7 +369,7 @@ if pipe is not None:
         ax.plot([lo, hi], [lo, hi], "k--", alpha=0.5, label="y = x")
         ax.errorbar(y, y_pred, yerr=2 * y_std, fmt="o", alpha=0.5,
                     markersize=4, capsize=2)
-        ax.set_xlabel(f"Actual {cfg['target_col']}")
+        ax.set_xlabel(f"Actual {cfg['target_cols'][0]}")
         ax.set_ylabel("Predicted")
         ax.set_title("Predicted vs Actual (training data)")
         ax.legend()
