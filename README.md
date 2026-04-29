@@ -1,10 +1,12 @@
 # GPReg
 
-I developped this Python Gaussian Process Regression package for my final project in **STT 890: Introduction to Python for Data and Statistical Analysis.** I plan on continuously updating it whenever I learn new tricks in my research as this project directly relates to my research. I used Claude AI to learn more about some aspects of this project like :
+I developped this Python Gaussian Process Regression package for my final project in **STT 890: Introduction to Python for Data and Statistical Analysis.** I plan on continuously updating it whenever I learn new tricks in my research as this project directly relates to my research. 
 
-1. How to add Pytorch functionalities as a possible option during model training (hyperparameter estimation)
-2. How to create .gitignore files and their usage
-3. 
+**I used Claude AI to learn more about some aspects of this project such as:**
+
+1. Adding Pytorch functionalities as a possible option during model training (hyperparameter estimation)
+2. Creating .gitignore and .toml files and their usage
+3. Creating a LICENSE
 
 📖 **[Full documentation](DOCUMENTATION.md)** | 📓 **[Demo notebook](examples/demo.ipynb)**
 
