@@ -547,19 +547,13 @@ if pipe is not None:
             st.pyplot(fig)
             plt.close(fig)
     else:
-        # Higher dim: show predicted vs actual on test set
-        fig, ax = plt.subplots(figsize=(7, 6))
-        lo, hi = min(y_test.min(), y_pred.min()), max(y_test.max(), y_pred.max())
-        ax.plot([lo, hi], [lo, hi], "k--", alpha=0.5, label="y = x")
-        ax.errorbar(y_test, y_pred, yerr=2 * y_std, fmt="o", alpha=0.5,
-                    markersize=4, capsize=2)
-        ax.set_xlabel(f"Actual {cfg['target_cols'][0]}")
-        ax.set_ylabel("Predicted")
-        ax.set_title("Predicted vs Actual (test data)")
-        ax.legend()
-        ax.grid(alpha=0.3)
-        st.pyplot(fig)
-        plt.close(fig)
+        # 3+ features: visualization isn't supported in the app.
+        # The test metrics and residual plot below still apply.
+        st.info(
+            f"Prediction visualization is available for 1 or 2 input features only. "
+            f"You selected {len(cfg['feature_cols'])} features ({', '.join(cfg['feature_cols'])}). "
+            f"Refer to the diagnostics section below for test RMSE, NLPD, and residuals."
+        )
     
     # ============================================================================
     # Diagnostics — based on the held-out test set
