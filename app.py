@@ -40,7 +40,7 @@ st.title("GPReg App for Gaussian Process Regression")
 st.caption(
     "Hello, welcome to this interactive demo of the GPReg package. Upload a numeric dataset or pick "
     "a demo, configure the kernel, and watch the GP fit in real time. "
-    "GPReg accepts continuous (numeric) inputs and outputs only. This is part of my STT890 course project. I plan on making the app better during the summer."
+    "GPReg accepts continuous (numeric) inputs and outputs only. This is part of my STT890 course project. I plan on making the app better during the summer!"
 )
 
 
@@ -51,7 +51,7 @@ st.sidebar.header("1. Data")
 
 data_source = st.sidebar.radio(
     "Source",
-    ["1D sine", "2D peaks", "multi-output", "Upload CSV"],
+    ["Demo: 1D sine", "Demo: 2D peaks", "Demo: multi-output", "Upload CSV"],
 )
 
 
